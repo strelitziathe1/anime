@@ -1,0 +1,50 @@
+/* Theme CSS variables */
+:root {
+  --color-primary: #3b82f6;
+  --color-secondary: #10b981;
+  --color-accent: #f59e0b;
+  --color-background: #f3f4f6;
+  --color-sidebar: #1f2937;
+  --color-text: #1f2937;
+  --color-border: #e5e7eb;
+}
+
+/* Theme-aware components */
+.theme-bg {
+  background-color: var(--color-background);
+  color: var(--color-text);
+}
+
+.theme-sidebar {
+  background-color: var(--color-sidebar);
+  color: var(--color-primary);
+}
+
+.theme-button-primary {
+  background-color: var(--color-primary);
+  color: white;
+}
+
+.theme-button-primary:hover {
+  opacity: 0.9;
+}
+
+.theme-input {
+  background-color: var(--color-background);
+  color: var(--color-text);
+  border-color: var(--color-border);
+}
+
+.theme-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.1);
+}
+
+.theme-link {
+  color: var(--color-primary);
+}
+
+.theme-link:hover {
+  opacity: 0.8;
+}

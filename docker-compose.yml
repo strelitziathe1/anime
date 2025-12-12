@@ -1,0 +1,86 @@
+version: "3.8"
+services:
+  postgres:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: strelitzia
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+
+  minio:
+    image: minio/minio:RELEASE.2025-01-01T00-00-00Z
+    command: server /data
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+    volumes:
+      - minio-data:/data
+
+  clamav:
+    image: mkodockx/docker-clamav:alpine
+    ports:
+      - "3310:3310"
+
+  api:
+    build:
+      context: ./api
+    env_file:
+      - ./api/.env.local
+    depends_on:
+      - postgres
+      - redis
+      - minio
+      - clamav
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./api:/usr/src/app
+
+  transcoder:
+    build:
+      context: ./transcoder
+    env_file:
+      - ./transcoder/.env.local
+    depends_on:
+      - redis
+      - minio
+      - clamav
+    volumes:
+      - ./transcoder/transcoding-workdir:/work
+    ports:
+      - "7020:7020"
+
+  web:
+    build:
+      context: ./web
+    env_file:
+      - ./web/.env.local
+    depends_on:
+      - api
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./web:/usr/src/app
+
+volumes:
+  postgres-data:
+  redis-data:
+  minio-data:
