@@ -1,0 +1,114 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  watcher
+  admin
+  main_admin
+}
+
+enum TranscodingStatus {
+  pending
+  running
+  success
+  failed
+  cancelled
+}
+
+model User {
+  id             String    @id @default(uuid())
+  email          String    @unique
+  passwordHash   String
+  role           Role      @default(watcher)
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  lastLogin      DateTime?
+  profileJson    Json?
+  refreshTokens  RefreshToken[]
+  watchHistory   WatchHistory[]
+  videos         Video[]   @relation("userVideos")
+  auditLogsActor AuditLog[] @relation("actor")
+}
+
+model RefreshToken {
+  id           String   @id @default(uuid())
+  user         User     @relation(fields: [userId], references: [id])
+  userId       String
+  tokenHash    String
+  createdAt    DateTime @default(now())
+  revoked      Boolean  @default(false)
+  expiresAt    DateTime
+}
+
+model Video {
+  id           String   @id @default(uuid())
+  title        String
+  description  String?
+  createdBy    User?    @relation("userVideos", fields: [createdById], references: [id])
+  createdById  String?
+  createdAt    DateTime @default(now())
+  nsfw         Boolean  @default(false)
+  episodes     Episode[]
+}
+
+model Episode {
+  id            String   @id @default(uuid())
+  video         Video    @relation(fields: [videoId], references: [id])
+  videoId       String
+  season        Int      @default(1)
+  episodeNumber Int
+  runtimeSec    Int?
+  s3_master_key String?
+  thumbnailKey  String?
+  createdAt     DateTime @default(now())
+  transcodingJobs TranscodingJob[]
+  uploads       UploadMetric[] @relation("episodeUploads")
+}
+
+model WatchHistory {
+  id             String   @id @default(uuid())
+  user           User     @relation(fields: [userId], references: [id])
+  userId         String
+  episode        Episode  @relation(fields: [episodeId], references: [id])
+  episodeId      String
+  lastPositionSec Int
+  watchedAt      DateTime @default(now())
+  @@unique([userId, episodeId], name: "userId_episodeId")
+}
+
+model TranscodingJob {
+  id          String   @id @default(uuid())
+  episode     Episode? @relation(fields: [episodeId], references: [id])
+  episodeId   String?
+  status      TranscodingStatus @default(pending)
+  presetInfo  Json?
+  startedAt   DateTime?
+  finishedAt  DateTime?
+  logsText    String?
+  createdAt   DateTime @default(now())
+  createdById String?
+}
+
+model UploadMetric {
+  id           String   @id @default(uuid())
+  user         User?    @relation(fields: [userId], references: [id])
+  userId       String?
+  bytesUploaded BigInt
+  createdAt    DateTime @default(now())
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  actor      User?    @relation("actor", fields: [actorId], references: [id])
+  actorId    String?
+  targetId   String?
+  action     String
+  detailsJson Json?
+  createdAt  DateTime @default(now())
+}
